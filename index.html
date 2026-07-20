@@ -99,6 +99,14 @@ body { display: flex; justify-content: center; align-items: center; }
 .word-card .emoji { font-size: 5rem; display: block; margin-bottom: 16px; }
 .word-card .word { font-size: 2.2rem; font-weight: 700; color: #333; }
 .word-card .cn { font-size: 1.1rem; color: #999; margin-top: 4px; }
+.word-speaker {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 16px;
+  padding: 12px 28px; border-radius: 50px; border: 3px solid #4A90D9;
+  background: #e8f0fe; font-size: 1.2rem; cursor: pointer; transition: all 0.2s;
+  color: #4A90D9; font-weight: 600;
+}
+.word-speaker:active { transform: scale(0.92); background: #4A90D9; color: #fff; }
+.word-speaker.playing { background: #4A90D9; color: #fff; animation: pulse 0.6s infinite; }
 .word-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
 .word-nav button {
   width: 56px; height: 56px; border-radius: 50%; border: none; font-size: 1.5rem;
@@ -417,6 +425,9 @@ body { display: flex; justify-content: center; align-items: center; }
       <span class="emoji" id="wc-emoji">🐱</span>
       <div class="word" id="wc-word">Cat</div>
       <div class="cn" id="wc-cn">猫</div>
+      <button class="word-speaker" id="wc-speaker" onclick="playCurrentWord()">
+        🔊 <span style="font-size:0.8rem;">点击听发音</span>
+      </button>
     </div>
     <div class="word-nav">
       <button id="word-prev" onclick="prevWord()">‹</button>
@@ -1071,14 +1082,27 @@ function renderWord() {
 function prevWord() { if (wordIndex > 0) { wordIndex--; renderWord(); playSound('click'); } }
 function nextWord() { const list = CATEGORIES[catKeys[catIndex]].list; if (wordIndex < list.length - 1) { wordIndex++; renderWord(); playSound('click'); } }
 
-document.getElementById('word-card')?.addEventListener('click', () => {
+// 点击单词卡片任意位置也能发音
+document.getElementById('word-card')?.addEventListener('click', (e) => {
+  if (e.target.id !== 'wc-speaker' && !e.target.closest('.word-speaker')) {
+    playCurrentWord();
+  }
+});
+
+function playCurrentWord() {
   const word = document.getElementById('wc-word').textContent;
   const cn = document.getElementById('wc-cn').textContent;
-  speak(word);
+  const btn = document.getElementById('wc-speaker');
+  btn.classList.add('playing');
+  btn.innerHTML = '🔊 <span style="font-size:0.8rem;">播放中...</span>';
+  speak(word).then(() => {
+    btn.classList.remove('playing');
+    btn.innerHTML = '🔊 <span style="font-size:0.8rem;">点击听发音</span>';
+  });
   State.learnWord(word);
   State.addStars(1);
-  mascotSay(`${word} 就是 ${cn} 的意思哦！记住了吗？😊`, 3000);
-});
+  mascotSay(`"${word}" 就是 ${cn} 的意思哦！记住了吗？😊`, 3000);
+}
 
 // ============================================================
 //  大声朗读
