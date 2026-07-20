@@ -434,7 +434,7 @@ body { display: flex; justify-content: center; align-items: center; }
       <div class="word" id="wc-word">Cat</div>
       <div class="cn" id="wc-cn">猫</div>
       <button class="word-speaker" id="wc-speaker" onclick="playCurrentWord()">
-        🔊 <span style="font-size:0.8rem;">点击听发音</span>
+        🔊 <span style="font-size:0.8rem;">Listen</span>
       </button>
     </div>
     <div class="word-nav">
@@ -495,7 +495,7 @@ body { display: flex; justify-content: center; align-items: center; }
         <p>你读对了 <span id="ra-correct-count" style="font-size:2rem;font-weight:700;color:#4CAF50;">0</span> 个</p>
         <p>获得 ⭐<span id="ra-star-count">0</span> 颗星星</p>
         <button class="readaloud-btn readaloud-btn-next" style="margin-top:20px;" onclick="mascotSay('盼盼为你鼓掌！👏 你太棒了！');showScreen('home')">
-          🏠 回到首页
+          🏠 Home
         </button>
       </div>
     </div>
@@ -512,16 +512,16 @@ body { display: flex; justify-content: center; align-items: center; }
   <div class="screen-body">
     <div id="quiz-start" style="text-align:center;padding:30px 0;">
       <div style="font-size:5rem;margin-bottom:16px;">🧠</div>
-      <h2 style="font-size:1.5rem;color:#333;margin-bottom:8px;">准备好了吗？</h2>
-      <p style="color:#999;margin-bottom:20px;">每题10分，看看你能拿多少分！</p>
+      <h2 style="font-size:1.5rem;color:#333;margin-bottom:8px;">Ready?</h2>
+      <p style="color:#999;margin-bottom:20px;">10 questions, 10 points each!</p>
       <button class="readaloud-btn readaloud-btn-listen" style="font-size:1.3rem;padding:20px 50px;" onclick="startQuiz()">
-        🚀 开始答题
+        🚀 Start
       </button>
     </div>
     <div id="quiz-play" class="hidden">
       <div class="quiz-header">
         <div class="quiz-progress" id="quiz-progress"></div>
-        <span style="font-size:0.9rem;color:#666;" id="quiz-score-display">得分：0</span>
+        <span style="font-size:0.9rem;color:#666;" id="quiz-score-display">Score: 0</span>
       </div>
       <div class="quiz-question" id="quiz-question"></div>
       <div class="quiz-options" id="quiz-options"></div>
@@ -536,10 +536,10 @@ body { display: flex; justify-content: center; align-items: center; }
         <div class="big" id="qr-emoji">🎉</div>
         <h2 id="qr-title">太棒了！</h2>
         <div class="stars" id="qr-stars">⭐⭐⭐</div>
-        <p>得分：<span id="qr-score" style="font-size:2rem;font-weight:700;color:#FF6B6B;">0</span> / 100</p>
-        <p style="margin-top:8px;color:#999;" id="qr-msg">继续加油哦！</p>
+        <p>Score: <span id="qr-score" style="font-size:2rem;font-weight:700;color:#FF6B6B;">0</span> / 100</p>
+        <p style="margin-top:8px;color:#999;" id="qr-msg">Keep going!</p>
         <button class="readaloud-btn readaloud-btn-next" style="margin-top:20px;" onclick="showScreen('home')">
-          🏠 回到首页
+          🏠 Home
         </button>
       </div>
     </div>
@@ -572,7 +572,7 @@ body { display: flex; justify-content: center; align-items: center; }
       <p style="color:#666;font-size:1.1rem;">用时 <span id="match-time" style="font-size:1.5rem;font-weight:700;color:#FF6B6B;">0</span> 秒</p>
       <p style="color:#666;font-size:1.1rem;">获得 ⭐<span id="match-stars">0</span> 颗星星</p>
       <button class="readaloud-btn readaloud-btn-next" style="margin-top:16px;" onclick="startMatching()">🔄 再来一局</button>
-      <button class="readaloud-btn readaloud-btn-listen" style="margin-top:8px;" onclick="showScreen('home')">🏠 回到首页</button>
+      <button class="readaloud-btn readaloud-btn-listen" style="margin-top:8px;" onclick="showScreen('home')">🏠 Home</button>
     </div>
   </div>
 </div>
@@ -1107,10 +1107,10 @@ function playCurrentWord() {
   const cn = document.getElementById('wc-cn').textContent;
   const btn = document.getElementById('wc-speaker');
   btn.classList.add('playing');
-  btn.innerHTML = '🔊 <span style="font-size:0.8rem;">播放中...</span>';
+  btn.innerHTML = '🔊 <span style="font-size:0.8rem;">Playing...</span>';
   speak(word).then(() => {
     btn.classList.remove('playing');
-    btn.innerHTML = '🔊 <span style="font-size:0.8rem;">点击听发音</span>';
+    btn.innerHTML = '🔊 <span style="font-size:0.8rem;">Listen</span>';
   });
   State.learnWord(word);
   State.addStars(1);
@@ -1264,8 +1264,8 @@ function startQuiz() {
     const options = [{ ...correct, isCorrect: true }, ...distractors.map(d => ({ ...d, isCorrect: false }))];
     const shuffledOpts = options.sort(() => Math.random() - 0.5);
     const type = Math.random() < 0.5 ? 'emoji2word' : 'cn2word';
-    const prompt = type === 'emoji2word' ? '选出正确的单词' : '选出正确的翻译';
-    const qText = type === 'emoji2word' ? '这是哪个单词？' : correct.cn;
+    const prompt = type === 'emoji2word' ? 'Choose the correct word' : 'Choose the correct translation';
+    const qText = type === 'emoji2word' ? 'Which word is this?' : correct.cn;
     const answer = correct.word;
     quizItems.push({ type, emoji: correct.emoji, prompt, qText, answer, options: shuffledOpts });
   }
@@ -1278,7 +1278,7 @@ function renderQuiz() {
   progress.innerHTML = quizItems.map((_, i) =>
     `<div class="quiz-dot ${i === quizIndex ? 'current' : ''} ${i < quizIndex ? (quizItems[i]?._correct ? 'correct' : 'wrong') : ''}"></div>`
   ).join('');
-  document.getElementById('quiz-score-display').textContent = '得分：' + quizScore;
+  document.getElementById('quiz-score-display').textContent = 'Score: ' + quizScore;
   const q = quizItems[quizIndex];
   if (!q) return;
   const qEl = document.getElementById('quiz-question');
@@ -1287,7 +1287,7 @@ function renderQuiz() {
     <div class="prompt">${q.prompt}</div>
     <div class="q-text">${q.qText}</div>
     <button class="quiz-speaker" id="quiz-speaker" onclick="quizReadAloud()">
-      🔊 听题目
+      🔊 Listen
     </button>
   `;
   const optEl = document.getElementById('quiz-options');
@@ -1305,7 +1305,7 @@ function quizReadAloud() {
   if (!q) return;
   const btn = document.getElementById('quiz-speaker');
   if (btn) {
-    btn.textContent = '🔊 播放中...';
+    btn.textContent = '🔊 Playing...';
     btn.classList.add('playing');
   }
   if (q.type === 'emoji2word') {
@@ -1319,7 +1319,7 @@ function quizReadAloud() {
   }
   setTimeout(() => {
     if (btn) {
-      btn.textContent = '🔊 听题目';
+      btn.textContent = '🔊 Listen';
       btn.classList.remove('playing');
     }
   }, 1500);
@@ -1338,7 +1338,7 @@ async function quizSelect(idx) {
   });
   if (selected.isCorrect) {
     quizScore += 10;
-    document.getElementById('quiz-score-display').textContent = '得分：' + quizScore;
+    document.getElementById('quiz-score-display').textContent = 'Score: ' + quizScore;
     q._correct = true;
     playSound('correct'); celebrate();
     await speak(selected.word);
@@ -1354,7 +1354,7 @@ async function quizSelect(idx) {
   // 显示"下一题"按钮
   const nextBtn = document.getElementById('quiz-next-btn');
   nextBtn.classList.remove('hidden');
-  nextBtn.textContent = quizIndex < quizItems.length - 1 ? '➡️ 下一题' : '🏁 查看结果';
+  nextBtn.textContent = quizIndex < quizItems.length - 1 ? '➡️ Next' : '🏁 Results';
 }
 
 function quizNext() {
@@ -1373,10 +1373,10 @@ function showQuizResult() {
   document.getElementById('quiz-result').classList.remove('hidden');
   const pct = Math.round(quizScore / (quizTotal * 10) * 100);
   let emoji, title, stars, msg;
-  if (pct >= 90) { emoji = '🏆'; title = '太厉害了！'; stars = '⭐⭐⭐'; msg = '你是英语小天才！'; State.addStars(10); playSound('win'); showConfetti(50); }
-  else if (pct >= 70) { emoji = '🎉'; title = '非常棒！'; stars = '⭐⭐'; msg = '继续加油，你越来越棒了！'; State.addStars(5); showConfetti(20); }
-  else if (pct >= 50) { emoji = '👍'; title = '不错哦！'; stars = '⭐'; msg = '多练习会更好！'; State.addStars(2); }
-  else { emoji = '💪'; title = '继续加油！'; stars = '☆'; msg = '多来几次就能拿满分！'; State.addStars(1); }
+  if (pct >= 90) { emoji = '🏆'; title = 'Excellent!'; stars = '⭐⭐⭐'; msg = 'You are a star!'; State.addStars(10); playSound('win'); showConfetti(50); }
+  else if (pct >= 70) { emoji = '🎉'; title = 'Great job!'; stars = '⭐⭐'; msg = 'Keep it up!'; State.addStars(5); showConfetti(20); }
+  else if (pct >= 50) { emoji = '👍'; title = 'Good!'; stars = '⭐'; msg = 'Practice makes perfect!'; State.addStars(2); }
+  else { emoji = '💪'; title = 'Keep trying!'; stars = '☆'; msg = 'Try again, you can do it!'; State.addStars(1); }
   document.getElementById('qr-emoji').textContent = emoji;
   document.getElementById('qr-title').textContent = title;
   document.getElementById('qr-stars').textContent = stars;
