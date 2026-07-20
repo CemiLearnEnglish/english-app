@@ -477,6 +477,10 @@ body { display: flex; justify-content: center; align-items: center; }
           <button class="readaloud-btn readaloud-btn-next hidden" id="ra-btn-next" onclick="raNext()">
             ➡️ 下一个
           </button>
+          <button class="readaloud-btn hidden" id="ra-btn-skip" onclick="raSkip()"
+            style="background:#999;color:#fff;padding:16px 20px;border-radius:50px;border:none;font-size:1rem;font-weight:600;cursor:pointer;">
+            ⏭️ 跳过
+          </button>
         </div>
       </div>
     </div>
@@ -1156,6 +1160,7 @@ function raShowItem() {
   document.getElementById('ra-btn-listen').disabled = false;
   document.getElementById('ra-btn-speak').disabled = true;
   document.getElementById('ra-btn-next').classList.add('hidden');
+  document.getElementById('ra-btn-skip').classList.add('hidden');
 }
 
 function raUpdateSteps() {
@@ -1172,10 +1177,12 @@ async function raListen() {
   document.getElementById('ra-feedback').textContent = '🔊 认真听发音哦...';
   document.getElementById('ra-feedback').className = 'readaloud-feedback';
   document.getElementById('ra-btn-listen').disabled = true;
+  document.getElementById('ra-btn-skip').classList.add('hidden');
   const item = raItems[raIndex];
   await speak(item.text);
   document.getElementById('ra-feedback').textContent = '🎤 现在你来读一遍吧！';
   document.getElementById('ra-btn-speak').disabled = false;
+  document.getElementById('ra-btn-skip').classList.remove('hidden');
   raStep = 3; raUpdateSteps();
 }
 
@@ -1207,6 +1214,7 @@ async function raStartRecording() {
     playSound('wrong');
     document.getElementById('ra-btn-listen').disabled = false;
     document.getElementById('ra-btn-speak').disabled = false;
+    document.getElementById('ra-btn-skip').classList.remove('hidden');
     raStep = 2; raUpdateSteps();
     return;
   }
@@ -1218,6 +1226,19 @@ async function raStartRecording() {
 }
 
 function raNext() { raIndex++; document.getElementById('ra-btn-next').classList.add('hidden'); raShowItem(); }
+
+function raSkip() {
+  document.getElementById('ra-btn-skip').classList.add('hidden');
+  document.getElementById('ra-btn-speak').disabled = true;
+  document.getElementById('ra-btn-listen').disabled = false;
+  mascotSay('没关系，下一个加油！💪', 2000);
+  if (raIndex < raItems.length - 1) {
+    document.getElementById('ra-btn-next').classList.remove('hidden');
+    document.getElementById('ra-btn-next').textContent = '➡️ 下一个';
+  } else {
+    raShowResult();
+  }
+}
 
 function raShowResult() {
   document.getElementById('readaloud-play').classList.add('hidden');
