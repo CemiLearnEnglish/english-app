@@ -392,6 +392,14 @@ body { display: flex; justify-content: center; align-items: center; }
     <div style="width:40px"></div>
   </div>
   <div class="screen-body">
+    <div style="display:flex;gap:8px;margin-bottom:12px;justify-content:center;">
+      <button class="readaloud-btn readaloud-btn-listen" style="padding:10px 20px;font-size:0.9rem;" onclick="readAllAlphabet()">
+        🔉 朗读全部
+      </button>
+      <button class="readaloud-btn readaloud-btn-speak" style="padding:10px 20px;font-size:0.9rem;" id="btn-autoplay" onclick="toggleAutoPlay()">
+        ▶️ 自动播放
+      </button>
+    </div>
     <div class="alphabet-grid" id="alphabet-grid"></div>
   </div>
 </div>
@@ -942,6 +950,7 @@ function renderAlphabet() {
     <div class="letter-card ${learned.includes(a.letter) ? 'learned' : ''}" onclick="clickLetter('${a.letter}')">
       <span class="letter">${a.letter}</span>
       <span class="emoji">${a.emoji}</span>
+      <span style="font-size:0.65rem;color:#999;margin-top:2px;">${a.word}</span>
     </div>
   `).join('');
 }
@@ -954,12 +963,79 @@ async function clickLetter(letter) {
   const idx = ALPHABET.findIndex(a => a.letter === letter);
   if (cards[idx]) cards[idx].classList.add('selected');
   playSound('click');
+  // 先读字母，再读单词
+  await speak(letter, 0.9);
   await speak(item.word);
   State.learnLetter(letter);
   renderAlphabet();
   State.addStars(1);
-  mascotSay(`你学会了字母 ${letter}！${item.word} 是 ${item.cn} 的意思哦！😊`, 3000);
+  mascotSay(`字母 ${letter}，${item.word} 是 ${item.cn} 的意思哦！😊`, 3000);
 }
+
+// 朗读全部字母
+let autoPlayRunning = false;
+async function readAllAlphabet() {
+  if (autoPlayRunning) return;
+  playSound('click');
+  mascotSay('跟着盼盼一起读26个字母吧！🔤', 3000);
+  for (const a of ALPHABET) {
+    const cards = document.querySelectorAll('.letter-card');
+    const idx = ALPHABET.findIndex(x => x.letter === a.letter);
+    document.querySelectorAll('.letter-card').forEach(c => c.classList.remove('selected'));
+    if (cards[idx]) cards[idx].classList.add('selected');
+    cards[idx]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    await speak(a.letter, 0.9);
+    await delay(300);
+    await speak(a.word);
+    await delay(500);
+  }
+  document.querySelectorAll('.letter-card').forEach(c => c.classList.remove('selected'));
+  mascotSay('太棒了！26个字母读完了！🌟', 3000);
+}
+
+// 自动播放
+function toggleAutoPlay() {
+  const btn = document.getElementById('btn-autoplay');
+  if (autoPlayRunning) {
+    autoPlayRunning = false;
+    btn.textContent = '▶️ 自动播放';
+    btn.style.background = '';
+  } else {
+    autoPlayRunning = true;
+    btn.textContent = '⏹️ 停止';
+    btn.style.background = '#e74c3c';
+    autoPlayNext(0);
+  }
+}
+
+function autoPlayNext(idx) {
+  if (!autoPlayRunning || idx >= ALPHABET.length) {
+    autoPlayRunning = false;
+    const btn = document.getElementById('btn-autoplay');
+    btn.textContent = '▶️ 自动播放';
+    btn.style.background = '';
+    document.querySelectorAll('.letter-card').forEach(c => c.classList.remove('selected'));
+    if (idx >= ALPHABET.length) mascotSay('全部播放完毕！你学会了吗？😊', 3000);
+    return;
+  }
+  const a = ALPHABET[idx];
+  const cards = document.querySelectorAll('.letter-card');
+  document.querySelectorAll('.letter-card').forEach(c => c.classList.remove('selected'));
+  if (cards[idx]) cards[idx].classList.add('selected');
+  cards[idx]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  speak(a.letter, 0.9).then(() => {
+    return delay(200).then(() => speak(a.word));
+  }).then(() => {
+    State.learnLetter(a.letter);
+    renderAlphabet();
+    State.addStars(1);
+    return delay(800);
+  }).then(() => {
+    if (autoPlayRunning) autoPlayNext(idx + 1);
+  });
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ============================================================
 //  单词认知
