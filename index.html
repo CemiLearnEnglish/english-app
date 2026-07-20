@@ -184,6 +184,14 @@ body { display: flex; justify-content: center; align-items: center; }
 .quiz-option.selected { border-color: #FF9800; background: #fff8e1; }
 .quiz-option.correct { border-color: #4CAF50; background: #e8f5e9; }
 .quiz-option.wrong { border-color: #FF6B6B; background: #ffebee; }
+.quiz-speaker {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 14px;
+  padding: 10px 22px; border-radius: 50px; border: 2px solid #FF9800;
+  background: #fff3e0; font-size: 0.95rem; cursor: pointer; transition: all 0.2s;
+  color: #FF9800; font-weight: 600;
+}
+.quiz-speaker:active { transform: scale(0.92); background: #FF9800; color: #fff; }
+.quiz-speaker.playing { background: #FF9800; color: #fff; animation: pulse 0.6s infinite; }
 .quiz-result {
   text-align: center; padding: 30px;
 }
@@ -1278,12 +1286,43 @@ function renderQuiz() {
     ${q.emoji ? `<span class="emoji">${q.emoji}</span>` : ''}
     <div class="prompt">${q.prompt}</div>
     <div class="q-text">${q.qText}</div>
+    <button class="quiz-speaker" id="quiz-speaker" onclick="quizReadAloud()">
+      🔊 听题目
+    </button>
   `;
   const optEl = document.getElementById('quiz-options');
   optEl.innerHTML = q.options.map((o, i) =>
     `<button class="quiz-option" data-idx="${i}" onclick="quizSelect(${i})">${o.emoji || ''} ${o.word}</button>`
   ).join('');
   quizAnswered = false;
+  // 自动朗读题目
+  setTimeout(() => quizReadAloud(), 400);
+}
+
+// 朗读题目
+function quizReadAloud() {
+  const q = quizItems[quizIndex];
+  if (!q) return;
+  const btn = document.getElementById('quiz-speaker');
+  if (btn) {
+    btn.textContent = '🔊 播放中...';
+    btn.classList.add('playing');
+  }
+  if (q.type === 'emoji2word') {
+    speak(q.qText);
+  } else {
+    // cn2word: 用中文朗读
+    const u = new SpeechSynthesisUtterance(q.qText);
+    u.lang = 'zh-CN'; u.rate = 0.9;
+    speechSynth.cancel();
+    speechSynth.speak(u);
+  }
+  setTimeout(() => {
+    if (btn) {
+      btn.textContent = '🔊 听题目';
+      btn.classList.remove('playing');
+    }
+  }, 1500);
 }
 
 async function quizSelect(idx) {
