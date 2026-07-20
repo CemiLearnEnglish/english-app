@@ -517,6 +517,11 @@ body { display: flex; justify-content: center; align-items: center; }
       </div>
       <div class="quiz-question" id="quiz-question"></div>
       <div class="quiz-options" id="quiz-options"></div>
+      <div style="text-align:center;margin-top:16px;min-height:52px;">
+        <button class="readaloud-btn readaloud-btn-next hidden" id="quiz-next-btn" onclick="quizNext()">
+          ➡️ 下一题
+        </button>
+      </div>
     </div>
     <div id="quiz-result" class="hidden">
       <div class="quiz-result">
@@ -1304,10 +1309,21 @@ async function quizSelect(idx) {
     await speak(q.answer);
   }
   renderQuiz();
-  setTimeout(() => {
-    if (quizIndex < quizItems.length - 1) { quizIndex++; renderQuiz(); }
-    else { showQuizResult(); }
-  }, 1200);
+  // 显示"下一题"按钮
+  const nextBtn = document.getElementById('quiz-next-btn');
+  nextBtn.classList.remove('hidden');
+  nextBtn.textContent = quizIndex < quizItems.length - 1 ? '➡️ 下一题' : '🏁 查看结果';
+}
+
+function quizNext() {
+  const nextBtn = document.getElementById('quiz-next-btn');
+  nextBtn.classList.add('hidden');
+  if (quizIndex < quizItems.length - 1) {
+    quizIndex++;
+    renderQuiz();
+  } else {
+    showQuizResult();
+  }
 }
 
 function showQuizResult() {
