@@ -16,6 +16,8 @@ html, body {
   overflow: hidden;
   background: #f0f0f0;
   user-select: none; -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  cursor: pointer;
 }
 body { display: flex; justify-content: center; align-items: center; }
 .app { width: 100%; height: 100%; max-width: 800px; position: relative; overflow: hidden; }
@@ -611,6 +613,9 @@ body { display: flex; justify-content: center; align-items: center; }
 </div>
 
 <script>
+// iOS 12 fix: enable click events on non-interactive elements
+document.addEventListener('touchstart', function(){}, {passive: true});
+
 // Polyfill for iOS 12 compatibility
 if (!Object.values) {
   Object.values = function(obj) {
@@ -619,10 +624,24 @@ if (!Object.values) {
     return vals;
   };
 }
+// Polyfill for NodeList.forEach (iOS 12.5 Safari)
+if (window.NodeList && !NodeList.prototype.forEach) {
+  NodeList.prototype.forEach = function(callback, thisArg) {
+    for (var i = 0; i < this.length; i++) {
+      callback.call(thisArg, this[i], i, this);
+    }
+  };
+}
+// Polyfill for Element.scrollIntoView with options
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = function() {
+    // no-op fallback
+  };
+}
 // ============================================================
 //  数据
 // ============================================================
-const ALPHABET = [
+var ALPHABET = [
   { letter: 'A', word: 'Apple',  emoji: '🍎', cn: '苹果' },
   { letter: 'B', word: 'Ball',   emoji: '⚽', cn: '球' },
   { letter: 'C', word: 'Cat',    emoji: '🐱', cn: '猫' },
@@ -651,7 +670,7 @@ const ALPHABET = [
   { letter: 'Z', word: 'Zebra',  emoji: '🦓', cn: '斑马' }
 ];
 
-const CATEGORIES = {
+var CATEGORIES = {
   basics: { label: '🎒 入门', list: [
     { word: 'Hello', emoji: '👋', cn: '你好' },
     { word: 'Good morning', emoji: '🌅', cn: '早上好' },
@@ -731,23 +750,23 @@ const CATEGORIES = {
   ]}
 };
 
-const PRAISE = ['太棒了！👏', '真厉害！🌟', '非常好！🎉', '真聪明！⭐', '继续加油！💪'];
-const ENCOURAGE = ['再试一次！💪', '加油，你可以的！', '没关系，再来！', '仔细听，再读一遍！'];
+var PRAISE = ['太棒了！👏', '真厉害！🌟', '非常好！🎉', '真聪明！⭐', '继续加油！💪'];
+var ENCOURAGE = ['再试一次！💪', '加油，你可以的！', '没关系，再来！', '仔细听，再读一遍！'];
 
 // 吉祥物消息
-const MASCOT_GREETINGS = [
+var MASCOT_GREETINGS = [
   '你好！我是熊猫盼盼，我们一起学英语吧！🎉',
   '今天想学什么呀？🔤',
   '盼盼最喜欢学英语了！你呢？😊',
   '认真学习的小朋友最可爱了！🌟'
 ];
-const MASCOT_CORRECT = [
+var MASCOT_CORRECT = [
   '太棒了！盼盼为你鼓掌！👏',
   '你真厉害！盼盼好开心！🎉',
   '哇！你又对了！盼盼也要加油！⭐',
   '好聪明呀！盼盼崇拜你！🥰'
 ];
-const MASCOT_ENCOURAGE = [
+var MASCOT_ENCOURAGE = [
   '没关系，再来一次！盼盼陪你！💪',
   '加油加油！盼盼相信你！🌟',
   '不要灰心，我们慢慢来！😊'
@@ -756,16 +775,16 @@ const MASCOT_ENCOURAGE = [
 // ============================================================
 //  音效 (Web Audio API)
 // ============================================================
-let audioCtx = null;
+var audioCtx = null;
 function getAudioCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   return audioCtx;
 }
 function playSound(type) {
   try {
-    const ctx = getAudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    var ctx = getAudioCtx();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
     gain.gain.setValueAtTime(0.15, ctx.currentTime);
     if (type === 'correct') {
@@ -801,12 +820,12 @@ function playSound(type) {
 // ============================================================
 //  吉祥物
 // ============================================================
-let mascotTimer = null;
+var mascotTimer = null;
 function mascotSay(text, duration = 4000) {
-  const el = document.getElementById('mascot-speech');
+  var el = document.getElementById('mascot-speech');
   document.getElementById('mascot-text').textContent = text;
   el.classList.remove('hidden');
-  const mascot = document.getElementById('mascot');
+  var mascot = document.getElementById('mascot');
   mascot.classList.add('waving');
   setTimeout(() => mascot.classList.remove('waving'), 1500);
   clearTimeout(mascotTimer);
@@ -817,12 +836,12 @@ function closeMascotSpeech() {
   clearTimeout(mascotTimer);
 }
 function mascotClick() {
-  const msg = MASCOT_GREETINGS[Math.floor(Math.random() * MASCOT_GREETINGS.length)];
+  var msg = MASCOT_GREETINGS[Math.floor(Math.random() * MASCOT_GREETINGS.length)];
   mascotSay(msg);
   playSound('click');
 }
 function mascotDance() {
-  const mascot = document.getElementById('mascot');
+  var mascot = document.getElementById('mascot');
   mascot.classList.add('dancing');
   setTimeout(() => mascot.classList.remove('dancing'), 2000);
 }
@@ -830,8 +849,8 @@ function mascotDance() {
 // ============================================================
 //  状态管理
 // ============================================================
-const State = {
-  get(key, def) { try { const v = localStorage.getItem('engapp_' + key); return v !== null ? JSON.parse(v) : def; } catch { return def; } },
+var State = {
+  get(key, def) { try { var v = localStorage.getItem('engapp_' + key); return v !== null ? JSON.parse(v) : def; } catch(e) { return def; } },
   set(key, val) { localStorage.setItem('engapp_' + key, JSON.stringify(val)); },
   get learnedLetters() { return this.get('learnedLetters', []); },
   set learnedLetters(v) { this.set('learnedLetters', v); },
@@ -843,11 +862,11 @@ const State = {
   set readAloudCount(v) { this.set('readAloudCount', v); },
   addStars(n) { this.stars = this.stars + n; this.updateHomeStats(); },
   learnLetter(l) {
-    const s = this.learnedLetters;
+    var s = this.learnedLetters;
     if (!s.includes(l)) { s.push(l); this.learnedLetters = s; }
   },
   learnWord(w) {
-    const s = this.learnedWords;
+    var s = this.learnedWords;
     if (!s.includes(w)) { s.push(w); this.learnedWords = s; this.updateHomeStats(); }
   },
   updateHomeStats() {
@@ -868,10 +887,10 @@ const State = {
 // ============================================================
 //  语音功能
 // ============================================================
-let speechSynth = window.speechSynthesis;
-let recognition = null;
+var speechSynth = window.speechSynthesis;
+var recognition = null;
 try {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (SR) { recognition = new SR(); recognition.lang = 'en-US'; recognition.interimResults = false; }
 } catch(e) {}
 
@@ -879,7 +898,7 @@ function speak(text, rate = 0.85) {
   return new Promise(resolve => {
     if (!speechSynth) { resolve(); return; }
     speechSynth.cancel();
-    const u = new SpeechSynthesisUtterance(text);
+    var u = new SpeechSynthesisUtterance(text);
     u.lang = 'en-US'; u.rate = rate; u.pitch = 1.1;
     u.onend = resolve; u.onerror = resolve;
     speechSynth.speak(u);
@@ -893,11 +912,11 @@ function startListening() {
     recognition.lang = 'en-US';
     recognition.interimResults = false;
     recognition.maxAlternatives = 3;
-    let result = '';
+    var result = '';
     recognition.onresult = e => { result = e.results[0][0].transcript.trim().toLowerCase(); };
     recognition.onend = () => resolve(result);
     recognition.onerror = () => resolve('');
-    try { recognition.start(); } catch { resolve(''); }
+    try { recognition.start(); } catch(e) { resolve(''); }
   });
 }
 
@@ -905,11 +924,11 @@ function startListening() {
 //  庆祝动画
 // ============================================================
 function showStarBurst(count = 8) {
-  const container = document.createElement('div');
+  var container = document.createElement('div');
   container.className = 'star-burst';
-  const emojis = ['⭐', '🌟', '✨', '💫'];
-  for (let i = 0; i < count; i++) {
-    const p = document.createElement('div');
+  var emojis = ['⭐', '🌟', '✨', '💫'];
+  for (var i = 0; i < count; i++) {
+    var p = document.createElement('div');
     p.className = 'star-particle';
     p.textContent = emojis[i % emojis.length];
     p.style.left = (20 + Math.random() * 60) + '%';
@@ -924,11 +943,11 @@ function showStarBurst(count = 8) {
 }
 
 function showConfetti(count = 30) {
-  const container = document.createElement('div');
+  var container = document.createElement('div');
   container.className = 'confetti-container';
-  const colors = ['#FF6B6B', '#4A90D9', '#FFD93D', '#4CAF50', '#9C27B0', '#FF9800', '#00BCD4'];
-  for (let i = 0; i < count; i++) {
-    const p = document.createElement('div');
+  var colors = ['#FF6B6B', '#4A90D9', '#FFD93D', '#4CAF50', '#9C27B0', '#FF9800', '#00BCD4'];
+  for (var i = 0; i < count; i++) {
+    var p = document.createElement('div');
     p.className = 'confetti-piece';
     p.style.left = Math.random() * 100 + '%';
     p.style.top = '-10px';
@@ -949,14 +968,14 @@ function celebrate() {
   showConfetti(25);
   mascotDance();
   playSound('correct');
-  const msg = MASCOT_CORRECT[Math.floor(Math.random() * MASCOT_CORRECT.length)];
+  var msg = MASCOT_CORRECT[Math.floor(Math.random() * MASCOT_CORRECT.length)];
   setTimeout(() => mascotSay(msg, 3000), 300);
 }
 
 // ============================================================
 //  屏幕导航
 // ============================================================
-let currentScreen = 'home';
+var currentScreen = 'home';
 
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -983,8 +1002,8 @@ setTimeout(() => {
 //  字母学习
 // ============================================================
 function renderAlphabet() {
-  const grid = document.getElementById('alphabet-grid');
-  const learned = State.learnedLetters;
+  var grid = document.getElementById('alphabet-grid');
+  var learned = State.learnedLetters;
   grid.innerHTML = ALPHABET.map(a => `
     <div class="letter-card ${learned.includes(a.letter) ? 'learned' : ''}" onclick="clickLetter('${a.letter}')">
       <span class="letter">${a.letter}</span>
@@ -1093,12 +1112,12 @@ function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 // ============================================================
 //  单词认知
 // ============================================================
-let catIndex = 0;
-let wordIndex = 0;
-const catKeys = Object.keys(CATEGORIES);
+var catIndex = 0;
+var wordIndex = 0;
+var catKeys = Object.keys(CATEGORIES);
 
 function renderCategory() {
-  const tabs = document.getElementById('category-tabs');
+  var tabs = document.getElementById('category-tabs');
   tabs.innerHTML = catKeys.map((k, i) =>
     `<button class="category-tab ${i === catIndex ? 'active' : ''}" onclick="switchCategory(${i})">${CATEGORIES[k].label}</button>`
   ).join('');
@@ -1110,9 +1129,9 @@ function switchCategory(i) {
 }
 
 function renderWord() {
-  const key = catKeys[catIndex];
-  const list = CATEGORIES[key].list;
-  const item = list[wordIndex];
+  var key = catKeys[catIndex];
+  var list = CATEGORIES[key].list;
+  var item = list[wordIndex];
   document.getElementById('wc-emoji').textContent = item.emoji;
   document.getElementById('wc-word').textContent = item.word;
   document.getElementById('wc-cn').textContent = item.cn;
@@ -1122,7 +1141,7 @@ function renderWord() {
 }
 
 function prevWord() { if (wordIndex > 0) { wordIndex--; renderWord(); playSound('click'); } }
-function nextWord() { const list = CATEGORIES[catKeys[catIndex]].list; if (wordIndex < list.length - 1) { wordIndex++; renderWord(); playSound('click'); } }
+function nextWord() { var list = CATEGORIES[catKeys[catIndex]].list; if (wordIndex < list.length - 1) { wordIndex++; renderWord(); playSound('click'); } }
 
 // 点击单词卡片任意位置也能发音
 var wc = document.getElementById('word-card');
@@ -1133,9 +1152,9 @@ if (wc) { wc.addEventListener('click', function(e) {
 });
 
 function playCurrentWord() {
-  const word = document.getElementById('wc-word').textContent;
-  const cn = document.getElementById('wc-cn').textContent;
-  const btn = document.getElementById('wc-speaker');
+  var word = document.getElementById('wc-word').textContent;
+  var cn = document.getElementById('wc-cn').textContent;
+  var btn = document.getElementById('wc-speaker');
   btn.classList.add('playing');
   btn.innerHTML = '🔊 <span style="font-size:0.8rem;">Playing...</span>';
   speak(word).then(() => {
@@ -1150,12 +1169,12 @@ function playCurrentWord() {
 // ============================================================
 //  大声朗读
 // ============================================================
-let raMode = 'word';
-let raItems = [];
-let raIndex = 0;
-let raCorrect = 0;
-let raListening = false;
-let raStep = 1;
+var raMode = 'word';
+var raItems = [];
+var raIndex = 0;
+var raCorrect = 0;
+var raListening = false;
+var raStep = 1;
 
 function resetReadAloud() {
   document.getElementById('readaloud-mode-select').classList.remove('hidden');
@@ -1185,7 +1204,7 @@ function startReadAloud(mode) {
 }
 
 function raShowItem() {
-  const item = raItems[raIndex];
+  var item = raItems[raIndex];
   document.getElementById('ra-emoji').textContent = item.emoji || '📖';
   document.getElementById('ra-word').textContent = item.display;
   document.getElementById('ra-cn').textContent = item.cn || '';
@@ -1198,8 +1217,8 @@ function raShowItem() {
 }
 
 function raUpdateSteps() {
-  for (let i = 1; i <= 3; i++) {
-    const el = document.getElementById('ra-step-' + i);
+  for (var i = 1; i <= 3; i++) {
+    var el = document.getElementById('ra-step-' + i);
     el.className = 'readaloud-step';
     if (i < raStep) el.classList.add('done');
     else if (i === raStep) el.classList.add('active');
@@ -1275,11 +1294,11 @@ function raShowResult() {
 // ============================================================
 //  测验
 // ============================================================
-let quizItems = [];
-let quizIndex = 0;
-let quizScore = 0;
-let quizAnswered = false;
-let quizTotal = 10;
+var quizItems = [];
+var quizIndex = 0;
+var quizScore = 0;
+var quizAnswered = false;
+var quizTotal = 10;
 
 function startQuiz() {
   document.getElementById('quiz-start').classList.add('hidden');
@@ -1305,7 +1324,7 @@ function startQuiz() {
     var type = Math.random() < 0.5 ? 'emoji2word' : 'cn2word';
     var prompt = type === 'emoji2word' ? 'Choose the correct word' : 'Choose the correct translation';
     var qText = type === 'emoji2word' ? 'Which word is this?' : correct.cn;
-    const answer = correct.word;
+    var answer = correct.word;
     quizItems.push({ type, emoji: correct.emoji, prompt, qText, answer, options: shuffledOpts });
   }
   renderQuiz();
@@ -1313,7 +1332,7 @@ function startQuiz() {
 }
 
 function renderQuiz() {
-  const progress = document.getElementById('quiz-progress');
+  var progress = document.getElementById('quiz-progress');
   progress.innerHTML = quizItems.map(function(_, i) {
     var dotClass = i === quizIndex ? ' current' : '';
     if (i < quizIndex) {
@@ -1322,9 +1341,9 @@ function renderQuiz() {
     return '<div class="quiz-dot' + dotClass + '"></div>';
   }).join('');
   document.getElementById('quiz-score-display').textContent = 'Score: ' + quizScore;
-  const q = quizItems[quizIndex];
+  var q = quizItems[quizIndex];
   if (!q) return;
-  const qEl = document.getElementById('quiz-question');
+  var qEl = document.getElementById('quiz-question');
   qEl.innerHTML = `
     ${q.emoji ? `<span class="emoji">${q.emoji}</span>` : ''}
     <div class="prompt">${q.prompt}</div>
@@ -1333,7 +1352,7 @@ function renderQuiz() {
       🔊 Listen
     </button>
   `;
-  const optEl = document.getElementById('quiz-options');
+  var optEl = document.getElementById('quiz-options');
   optEl.innerHTML = q.options.map((o, i) =>
     `<button class="quiz-option" data-idx="${i}" onclick="quizSelect(${i})">${o.emoji || ''} ${o.word}</button>`
   ).join('');
@@ -1344,9 +1363,9 @@ function renderQuiz() {
 
 // 朗读题目
 function quizReadAloud() {
-  const q = quizItems[quizIndex];
+  var q = quizItems[quizIndex];
   if (!q) return;
-  const btn = document.getElementById('quiz-speaker');
+  var btn = document.getElementById('quiz-speaker');
   if (btn) {
     btn.textContent = '🔊 Playing...';
     btn.classList.add('playing');
@@ -1355,7 +1374,7 @@ function quizReadAloud() {
     speak(q.qText);
   } else {
     // cn2word: 用中文朗读
-    const u = new SpeechSynthesisUtterance(q.qText);
+    var u = new SpeechSynthesisUtterance(q.qText);
     u.lang = 'zh-CN'; u.rate = 0.9;
     speechSynth.cancel();
     speechSynth.speak(u);
@@ -1403,7 +1422,7 @@ function quizSelect(idx) {
 }
 
 function quizNext() {
-  const nextBtn = document.getElementById('quiz-next-btn');
+  var nextBtn = document.getElementById('quiz-next-btn');
   nextBtn.classList.add('hidden');
   if (quizIndex < quizItems.length - 1) {
     quizIndex++;
@@ -1416,8 +1435,8 @@ function quizNext() {
 function showQuizResult() {
   document.getElementById('quiz-play').classList.add('hidden');
   document.getElementById('quiz-result').classList.remove('hidden');
-  const pct = Math.round(quizScore / (quizTotal * 10) * 100);
-  let emoji, title, stars, msg;
+  var pct = Math.round(quizScore / (quizTotal * 10) * 100);
+  var emoji, title, stars, msg;
   if (pct >= 90) { emoji = '🏆'; title = 'Excellent!'; stars = '⭐⭐⭐'; msg = 'You are a star!'; State.addStars(10); playSound('win'); showConfetti(50); }
   else if (pct >= 70) { emoji = '🎉'; title = 'Great job!'; stars = '⭐⭐'; msg = 'Keep it up!'; State.addStars(5); showConfetti(20); }
   else if (pct >= 50) { emoji = '👍'; title = 'Good!'; stars = '⭐'; msg = 'Practice makes perfect!'; State.addStars(2); }
@@ -1433,13 +1452,13 @@ function showQuizResult() {
 // ============================================================
 //  配对游戏
 // ============================================================
-let matchCards = [];
-let matchFlipped = [];
-let matchLocked = false;
-let matchPairs = 0;
-let matchTotalPairs = 6;
-let matchTimer = null;
-let matchSeconds = 0;
+var matchCards = [];
+var matchFlipped = [];
+var matchLocked = false;
+var matchPairs = 0;
+var matchTotalPairs = 6;
+var matchTimer = null;
+var matchSeconds = 0;
 
 function resetMatching() {
   document.getElementById('match-start').classList.remove('hidden');
@@ -1472,7 +1491,7 @@ function startMatching() {
 }
 
 function renderMatchGrid() {
-  const grid = document.getElementById('match-grid');
+  var grid = document.getElementById('match-grid');
   grid.innerHTML = matchCards.map(c => `
     <div class="match-card ${c.matched ? 'matched' : ''}" data-id="${c.id}" onclick="flipCard(${c.id})">
       <div class="card-face card-back">❓</div>
@@ -1485,12 +1504,12 @@ function renderMatchGrid() {
 
 function flipCard(id) {
   if (matchLocked) return;
-  const card = matchCards.find(c => c.id === id);
+  var card = matchCards.find(c => c.id === id);
   if (!card || card.matched) return;
   if (matchFlipped.length === 2) return;
   if (matchFlipped.find(c => c.id === id)) return;
   playSound('flip');
-  const el = document.querySelector(`.match-card[data-id="${id}"]`);
+  var el = document.querySelector(`.match-card[data-id="${id}"]`);
   el.classList.add('flipped');
   matchFlipped.push(card);
   if (matchFlipped.length === 2) {
@@ -1500,7 +1519,7 @@ function flipCard(id) {
 }
 
 function checkMatch() {
-  const [a, b] = matchFlipped;
+  var [a, b] = matchFlipped;
   if (a.pairId === b.pairId && a.type !== b.type) {
     // 配对成功
     matchPairs++;
@@ -1536,7 +1555,7 @@ function matchWin() {
   document.getElementById('match-play').classList.add('hidden');
   document.getElementById('match-result').classList.remove('hidden');
   document.getElementById('match-time').textContent = matchSeconds;
-  const starReward = Math.max(3, 10 - Math.floor(matchSeconds / 10));
+  var starReward = Math.max(3, 10 - Math.floor(matchSeconds / 10));
   document.getElementById('match-stars').textContent = starReward;
   State.addStars(starReward);
   playSound('win');
@@ -1550,13 +1569,13 @@ function matchWin() {
 // ============================================================
 function renderProgress() {
   document.getElementById('p-total-stars').textContent = '⭐ ' + State.stars;
-  const list = document.getElementById('progress-list');
-  const learnedLetters = State.learnedLetters;
-  const learnedWords = State.learnedWords;
-  const letterPct = Math.round(learnedLetters.length / ALPHABET.length * 100);
-  const allWords = [];
+  var list = document.getElementById('progress-list');
+  var learnedLetters = State.learnedLetters;
+  var learnedWords = State.learnedWords;
+  var letterPct = Math.round(learnedLetters.length / ALPHABET.length * 100);
+  var allWords = [];
   Object.values(CATEGORIES).forEach(c => c.list.forEach(w => allWords.push(w.word)));
-  const wordPct = Math.round(learnedWords.filter(w => allWords.includes(w)).length / allWords.length * 100);
+  var wordPct = Math.round(learnedWords.filter(w => allWords.includes(w)).length / allWords.length * 100);
   list.innerHTML = `
     <div class="progress-item">
       <div class="label"><span>🔤 字母 (${learnedLetters.length}/${ALPHABET.length})</span><span>${letterPct}%</span></div>
