@@ -30,7 +30,12 @@ body { display: flex; justify-content: center; align-items: center; }
 .screen.active { display: flex; }
 .screen-header {
   display: flex; align-items: center; padding: 12px 16px;
-  background: rgba(255,255,255,0.85); backdrop-filter: blur(10px);
+  background: rgba(255,255,255,0.95);
+  /* fallback for iOS 12 */
+  background: #fcfcfc;
+  background: rgba(255,255,255,0.85);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   min-height: 56px; z-index: 10;
 }
 .screen-header h1 { flex: 1; text-align: center; font-size: 1.4rem; color: #333; }
@@ -71,10 +76,11 @@ body { display: flex; justify-content: center; align-items: center; }
 /* ========== 字母学习 ========== */
 .alphabet-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .letter-card {
-  aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
   background: #fff; border-radius: 16px; border: 3px solid transparent; cursor: pointer;
   font-size: 2rem; font-weight: 700; color: #333; transition: all 0.2s;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08); position: relative;
+  min-height: 80px;
 }
 .letter-card:active { transform: scale(0.92); }
 .letter-card .letter { font-size: 2rem; line-height: 1.2; }
@@ -202,10 +208,11 @@ body { display: flex; justify-content: center; align-items: center; }
 /* ========== 配对游戏 ========== */
 .match-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 8px 0; }
 .match-card {
-  aspect-ratio: 1; border-radius: 20px; display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   font-size: 3rem; font-weight: 700; cursor: pointer; transition: all 0.3s;
   background: linear-gradient(145deg, #FF6B6B, #ee5a24); color: #fff;
   box-shadow: 0 4px 15px rgba(0,0,0,0.15); position: relative;
+  min-height: 100px; border-radius: 20px;
   transform-style: preserve-3d;
 }
 .match-card:active { transform: scale(0.92); }
@@ -604,6 +611,14 @@ body { display: flex; justify-content: center; align-items: center; }
 </div>
 
 <script>
+// Polyfill for iOS 12 compatibility
+if (!Object.values) {
+  Object.values = function(obj) {
+    var keys = Object.keys(obj), vals = [], i;
+    for (i = 0; i < keys.length; i++) { vals.push(obj[keys[i]]); }
+    return vals;
+  };
+}
 // ============================================================
 //  数据
 // ============================================================
@@ -979,47 +994,60 @@ function renderAlphabet() {
   `).join('');
 }
 
-async function clickLetter(letter) {
-  const item = ALPHABET.find(a => a.letter === letter);
+function clickLetter(letter) {
+  var item = ALPHABET.find(function(a) { return a.letter === letter; });
   if (!item) return;
-  document.querySelectorAll('.letter-card').forEach(c => c.classList.remove('selected'));
-  const cards = document.querySelectorAll('.letter-card');
-  const idx = ALPHABET.findIndex(a => a.letter === letter);
+  document.querySelectorAll('.letter-card').forEach(function(c) { c.classList.remove('selected'); });
+  var cards = document.querySelectorAll('.letter-card');
+  var idx = ALPHABET.findIndex(function(a) { return a.letter === letter; });
   if (cards[idx]) cards[idx].classList.add('selected');
   playSound('click');
-  // 先读字母，再读单词
-  await speak(letter, 0.9);
-  await speak(item.word);
-  State.learnLetter(letter);
-  renderAlphabet();
-  State.addStars(1);
-  mascotSay(`字母 ${letter}，${item.word} 是 ${item.cn} 的意思哦！😊`, 3000);
+  speak(letter, 0.9).then(function() {
+    return speak(item.word);
+  }).then(function() {
+    State.learnLetter(letter);
+    renderAlphabet();
+    State.addStars(1);
+    mascotSay('字母 ' + letter + '，' + item.word + ' 是 ' + item.cn + ' 的意思哦😊', 3000);
+  });
 }
 
 // 朗读全部字母
-let autoPlayRunning = false;
-async function readAllAlphabet() {
+var autoPlayRunning = false;
+function readAllAlphabet() {
   if (autoPlayRunning) return;
   playSound('click');
   mascotSay('跟着盼盼一起读26个字母吧！🔤', 3000);
-  for (const a of ALPHABET) {
-    const cards = document.querySelectorAll('.letter-card');
-    const idx = ALPHABET.findIndex(x => x.letter === a.letter);
-    document.querySelectorAll('.letter-card').forEach(c => c.classList.remove('selected'));
+  var i = 0;
+  function nextLetter() {
+    if (i >= ALPHABET.length) {
+      document.querySelectorAll('.letter-card').forEach(function(c) { c.classList.remove('selected'); });
+      mascotSay('太棒了！26个字母读完了！🌟', 3000);
+      return;
+    }
+    var a = ALPHABET[i];
+    var cards = document.querySelectorAll('.letter-card');
+    var idx = ALPHABET.findIndex(function(x) { return x.letter === a.letter; });
+    document.querySelectorAll('.letter-card').forEach(function(c) { c.classList.remove('selected'); });
     if (cards[idx]) cards[idx].classList.add('selected');
-    cards[idx]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    await speak(a.letter, 0.9);
-    await delay(300);
-    await speak(a.word);
-    await delay(500);
+    if (cards[idx] && cards[idx].scrollIntoView) { cards[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+    speak(a.letter, 0.9).then(function() {
+      return delay(300);
+    }).then(function() {
+      return speak(a.word);
+    }).then(function() {
+      return delay(500);
+    }).then(function() {
+      i++;
+      nextLetter();
+    });
   }
-  document.querySelectorAll('.letter-card').forEach(c => c.classList.remove('selected'));
-  mascotSay('太棒了！26个字母读完了！🌟', 3000);
+  nextLetter();
 }
 
 // 自动播放
 function toggleAutoPlay() {
-  const btn = document.getElementById('btn-autoplay');
+  var btn = document.getElementById('btn-autoplay');
   if (autoPlayRunning) {
     autoPlayRunning = false;
     btn.textContent = '▶️ 自动播放';
@@ -1035,26 +1063,27 @@ function toggleAutoPlay() {
 function autoPlayNext(idx) {
   if (!autoPlayRunning || idx >= ALPHABET.length) {
     autoPlayRunning = false;
-    const btn = document.getElementById('btn-autoplay');
-    btn.textContent = '▶️ 自动播放';
-    btn.style.background = '';
-    document.querySelectorAll('.letter-card').forEach(c => c.classList.remove('selected'));
+    var btn = document.getElementById('btn-autoplay');
+    if (btn) { btn.textContent = '▶️ 自动播放'; btn.style.background = ''; }
+    document.querySelectorAll('.letter-card').forEach(function(c) { c.classList.remove('selected'); });
     if (idx >= ALPHABET.length) mascotSay('全部播放完毕！你学会了吗？😊', 3000);
     return;
   }
-  const a = ALPHABET[idx];
-  const cards = document.querySelectorAll('.letter-card');
-  document.querySelectorAll('.letter-card').forEach(c => c.classList.remove('selected'));
+  var a = ALPHABET[idx];
+  var cards = document.querySelectorAll('.letter-card');
+  document.querySelectorAll('.letter-card').forEach(function(c) { c.classList.remove('selected'); });
   if (cards[idx]) cards[idx].classList.add('selected');
-  cards[idx]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  speak(a.letter, 0.9).then(() => {
-    return delay(200).then(() => speak(a.word));
-  }).then(() => {
+  if (cards[idx] && cards[idx].scrollIntoView) { cards[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+  speak(a.letter, 0.9).then(function() {
+    return delay(200);
+  }).then(function() {
+    return speak(a.word);
+  }).then(function() {
     State.learnLetter(a.letter);
     renderAlphabet();
     State.addStars(1);
     return delay(800);
-  }).then(() => {
+  }).then(function() {
     if (autoPlayRunning) autoPlayNext(idx + 1);
   });
 }
@@ -1096,7 +1125,8 @@ function prevWord() { if (wordIndex > 0) { wordIndex--; renderWord(); playSound(
 function nextWord() { const list = CATEGORIES[catKeys[catIndex]].list; if (wordIndex < list.length - 1) { wordIndex++; renderWord(); playSound('click'); } }
 
 // 点击单词卡片任意位置也能发音
-document.getElementById('word-card')?.addEventListener('click', (e) => {
+var wc = document.getElementById('word-card');
+if (wc) { wc.addEventListener('click', function(e) {
   if (e.target.id !== 'wc-speaker' && !e.target.closest('.word-speaker')) {
     playCurrentWord();
   }
@@ -1138,12 +1168,13 @@ function startReadAloud(mode) {
   if (mode === 'alphabet') {
     raItems = ALPHABET.map(a => ({ text: a.letter, word: a.letter, emoji: a.emoji, cn: a.cn, display: a.letter }));
   } else {
-    const all = [];
-    Object.values(CATEGORIES).forEach(c => c.list.forEach(w => all.push(w)));
+    var all = [];
+    Object.values(CATEGORIES).forEach(function(c) { c.list.forEach(function(w) { all.push(w); }); });
     raItems = [];
-    const shuffled = [...all].sort(() => Math.random() - 0.5);
-    for (let i = 0; i < Math.min(10, shuffled.length); i++) {
-      raItems.push({ text: shuffled[i].word, display: shuffled[i].word, ...shuffled[i] });
+    var shuffled = all.slice().sort(function() { return Math.random() - 0.5; });
+    for (var i = 0; i < Math.min(10, shuffled.length); i++) {
+      var item = shuffled[i];
+      raItems.push({ text: item.word, display: item.word, emoji: item.emoji, cn: item.cn, word: item.word });
     }
   }
   document.getElementById('readaloud-mode-select').classList.add('hidden');
@@ -1175,57 +1206,58 @@ function raUpdateSteps() {
   }
 }
 
-async function raListen() {
+function raListen() {
   raStep = 2; raUpdateSteps();
   document.getElementById('ra-feedback').textContent = '🔊 认真听发音哦...';
   document.getElementById('ra-feedback').className = 'readaloud-feedback';
   document.getElementById('ra-btn-listen').disabled = true;
-  const item = raItems[raIndex];
-  await speak(item.text);
-  document.getElementById('ra-feedback').textContent = '🎤 现在你来读一遍吧！';
-  document.getElementById('ra-btn-speak').disabled = false;
-  raStep = 3; raUpdateSteps();
-  // 听完发音后同时显示"下一个"按钮，孩子可以选跟读或直接下一个
-  document.getElementById('ra-btn-next').classList.remove('hidden');
+  var item = raItems[raIndex];
+  speak(item.text).then(function() {
+    document.getElementById('ra-feedback').textContent = '🎤 现在你来读一遍吧！';
+    document.getElementById('ra-btn-speak').disabled = false;
+    raStep = 3; raUpdateSteps();
+    document.getElementById('ra-btn-next').classList.remove('hidden');
+  });
 }
 
-async function raStartRecording() {
+function raStartRecording() {
   if (raListening) return;
   raListening = true;
   document.getElementById('ra-btn-speak').disabled = true;
   document.getElementById('ra-feedback').textContent = '🎙️ 正在听...大声读出来！';
   document.getElementById('ra-feedback').className = 'readaloud-feedback listening';
-  const result = await startListening();
-  raListening = false;
-  const item = raItems[raIndex];
-  const expected = item.text.toLowerCase().trim();
-  const got = result.toLowerCase().trim();
-  const isCorrect = got && (got === expected || got.includes(expected) || expected.includes(got));
-  if (isCorrect) {
-    raCorrect++;
-    const praise = PRAISE[Math.floor(Math.random() * PRAISE.length)];
-    document.getElementById('ra-feedback').textContent = '✅ ' + praise;
-    document.getElementById('ra-feedback').className = 'readaloud-feedback correct';
-    showStarBurst(6); playSound('correct'); celebrate();
-    State.addStars(2);
-    State.learnWord(item.text);
-    if (raMode === 'alphabet') State.learnLetter(item.text);
-  } else {
-    const tip = ENCOURAGE[Math.floor(Math.random() * ENCOURAGE.length)];
-    document.getElementById('ra-feedback').textContent = '❌ ' + tip + ' 再听一遍吧';
-    document.getElementById('ra-feedback').className = 'readaloud-feedback wrong';
-    playSound('wrong');
-    document.getElementById('ra-btn-listen').disabled = false;
-    document.getElementById('ra-btn-speak').disabled = false;
-    document.getElementById('ra-btn-next').classList.remove('hidden');
-    raStep = 2; raUpdateSteps();
-    return;
-  }
-  if (raIndex < raItems.length - 1) {
-    document.getElementById('ra-btn-next').classList.remove('hidden');
-  } else {
-    raShowResult();
-  }
+  startListening().then(function(result) {
+    raListening = false;
+    var item = raItems[raIndex];
+    var expected = item.text.toLowerCase().trim();
+    var got = result.toLowerCase().trim();
+    var isCorrect = got && (got === expected || got.indexOf(expected) !== -1 || expected.indexOf(got) !== -1);
+    if (isCorrect) {
+      raCorrect++;
+      var praise = PRAISE[Math.floor(Math.random() * PRAISE.length)];
+      document.getElementById('ra-feedback').textContent = '✅ ' + praise;
+      document.getElementById('ra-feedback').className = 'readaloud-feedback correct';
+      showStarBurst(6); playSound('correct'); celebrate();
+      State.addStars(2);
+      State.learnWord(item.text);
+      if (raMode === 'alphabet') State.learnLetter(item.text);
+    } else {
+      var tip = ENCOURAGE[Math.floor(Math.random() * ENCOURAGE.length)];
+      document.getElementById('ra-feedback').textContent = '❌ ' + tip + ' 再听一遍吧';
+      document.getElementById('ra-feedback').className = 'readaloud-feedback wrong';
+      playSound('wrong');
+      document.getElementById('ra-btn-listen').disabled = false;
+      document.getElementById('ra-btn-speak').disabled = false;
+      document.getElementById('ra-btn-next').classList.remove('hidden');
+      raStep = 2; raUpdateSteps();
+      return;
+    }
+    if (raIndex < raItems.length - 1) {
+      document.getElementById('ra-btn-next').classList.remove('hidden');
+    } else {
+      raShowResult();
+    }
+  });
 }
 
 function raNext() { raIndex++; document.getElementById('ra-btn-next').classList.add('hidden'); raShowItem(); }
@@ -1255,17 +1287,24 @@ function startQuiz() {
   document.getElementById('quiz-result').classList.add('hidden');
   quizIndex = 0; quizScore = 0; quizAnswered = false;
   quizItems = [];
-  const allWords = [];
-  Object.values(CATEGORIES).forEach(c => c.list.forEach(w => allWords.push({ ...w, cat: c.label })));
-  const shuffled = [...allWords].sort(() => Math.random() - 0.5);
-  for (let i = 0; i < Math.min(quizTotal, shuffled.length); i++) {
-    const correct = shuffled[i];
-    const distractors = allWords.filter(w => w.word !== correct.word).sort(() => Math.random() - 0.5).slice(0, 3);
-    const options = [{ ...correct, isCorrect: true }, ...distractors.map(d => ({ ...d, isCorrect: false }))];
-    const shuffledOpts = options.sort(() => Math.random() - 0.5);
-    const type = Math.random() < 0.5 ? 'emoji2word' : 'cn2word';
-    const prompt = type === 'emoji2word' ? 'Choose the correct word' : 'Choose the correct translation';
-    const qText = type === 'emoji2word' ? 'Which word is this?' : correct.cn;
+  var allWords = [];
+  Object.values(CATEGORIES).forEach(function(c) {
+    c.list.forEach(function(w) {
+      allWords.push(Object.assign({}, w, { cat: c.label }));
+    });
+  });
+  var shuffled = allWords.slice().sort(function() { return Math.random() - 0.5; });
+  for (var i = 0; i < Math.min(quizTotal, shuffled.length); i++) {
+    var correct = shuffled[i];
+    var distractors = allWords.filter(function(w) { return w.word !== correct.word; }).sort(function() { return Math.random() - 0.5; }).slice(0, 3);
+    var options = [Object.assign({}, correct, { isCorrect: true })];
+    for (var d = 0; d < distractors.length; d++) {
+      options.push(Object.assign({}, distractors[d], { isCorrect: false }));
+    }
+    var shuffledOpts = options.sort(function() { return Math.random() - 0.5; });
+    var type = Math.random() < 0.5 ? 'emoji2word' : 'cn2word';
+    var prompt = type === 'emoji2word' ? 'Choose the correct word' : 'Choose the correct translation';
+    var qText = type === 'emoji2word' ? 'Which word is this?' : correct.cn;
     const answer = correct.word;
     quizItems.push({ type, emoji: correct.emoji, prompt, qText, answer, options: shuffledOpts });
   }
@@ -1275,9 +1314,13 @@ function startQuiz() {
 
 function renderQuiz() {
   const progress = document.getElementById('quiz-progress');
-  progress.innerHTML = quizItems.map((_, i) =>
-    `<div class="quiz-dot ${i === quizIndex ? 'current' : ''} ${i < quizIndex ? (quizItems[i]?._correct ? 'correct' : 'wrong') : ''}"></div>`
-  ).join('');
+  progress.innerHTML = quizItems.map(function(_, i) {
+    var dotClass = i === quizIndex ? ' current' : '';
+    if (i < quizIndex) {
+      dotClass += (quizItems[i] && quizItems[i]._correct) ? ' correct' : ' wrong';
+    }
+    return '<div class="quiz-dot' + dotClass + '"></div>';
+  }).join('');
   document.getElementById('quiz-score-display').textContent = 'Score: ' + quizScore;
   const q = quizItems[quizIndex];
   if (!q) return;
@@ -1325,36 +1368,38 @@ function quizReadAloud() {
   }, 1500);
 }
 
-async function quizSelect(idx) {
+function quizSelect(idx) {
   if (quizAnswered) return;
   quizAnswered = true;
-  const q = quizItems[quizIndex];
-  const selected = q.options[idx];
-  const allOpts = document.querySelectorAll('.quiz-option');
-  allOpts.forEach((el, i) => {
-    const opt = q.options[i];
-    el.classList.add(opt.isCorrect ? 'correct' : 'wrong');
-    el.disabled = true;
-  });
+  var q = quizItems[quizIndex];
+  var selected = q.options[idx];
+  var allOpts = document.querySelectorAll('.quiz-option');
+  for (var i = 0; i < allOpts.length; i++) {
+    var opt = q.options[i];
+    allOpts[i].classList.add(opt.isCorrect ? 'correct' : 'wrong');
+    allOpts[i].disabled = true;
+  }
+  function showNextBtn() {
+    renderQuiz();
+    var nextBtn = document.getElementById('quiz-next-btn');
+    nextBtn.classList.remove('hidden');
+    nextBtn.textContent = quizIndex < quizItems.length - 1 ? '➡️ Next' : '🏁 Results';
+  }
   if (selected.isCorrect) {
     quizScore += 10;
     document.getElementById('quiz-score-display').textContent = 'Score: ' + quizScore;
     q._correct = true;
     playSound('correct'); celebrate();
-    await speak(selected.word);
+    speak(selected.word).then(showNextBtn);
   } else {
     q._correct = false;
     playSound('wrong');
-    const tip = ENCOURAGE[Math.floor(Math.random() * ENCOURAGE.length)];
+    var tip = ENCOURAGE[Math.floor(Math.random() * ENCOURAGE.length)];
     mascotSay(tip, 2000);
-    await speak(selected.word);
-    await speak(q.answer);
+    speak(selected.word).then(function() {
+      return speak(q.answer);
+    }).then(showNextBtn);
   }
-  renderQuiz();
-  // 显示"下一题"按钮
-  const nextBtn = document.getElementById('quiz-next-btn');
-  nextBtn.classList.remove('hidden');
-  nextBtn.textContent = quizIndex < quizItems.length - 1 ? '➡️ Next' : '🏁 Results';
 }
 
 function quizNext() {
@@ -1409,11 +1454,11 @@ function startMatching() {
   document.getElementById('match-result').classList.add('hidden');
   matchFlipped = []; matchLocked = false; matchPairs = 0; matchSeconds = 0;
   // 随机选6个单词
-  const allWords = [];
-  Object.values(CATEGORIES).forEach(c => c.list.forEach(w => allWords.push(w)));
-  const shuffled = [...allWords].sort(() => Math.random() - 0.5).slice(0, matchTotalPairs);
+  var allWords = [];
+  Object.values(CATEGORIES).forEach(function(c) { c.list.forEach(function(w) { allWords.push(w); }); });
+  var shuffled = allWords.slice().sort(function() { return Math.random() - 0.5; }).slice(0, matchTotalPairs);
   matchCards = [];
-  shuffled.forEach((w, i) => {
+  shuffled.forEach(function(w, i) {
     matchCards.push({ id: i * 2, pairId: i, type: 'emoji', content: w.emoji, word: w.word, matched: false });
     matchCards.push({ id: i * 2 + 1, pairId: i, type: 'word', content: w.word, word: w.word, matched: false });
   });
