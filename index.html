@@ -1145,11 +1145,13 @@ function nextWord() { var list = CATEGORIES[catKeys[catIndex]].list; if (wordInd
 
 // 点击单词卡片任意位置也能发音
 var wc = document.getElementById('word-card');
-if (wc) { wc.addEventListener('click', function(e) {
-  if (e.target.id !== 'wc-speaker' && !e.target.closest('.word-speaker')) {
-    playCurrentWord();
-  }
-});
+if (wc) {
+  wc.addEventListener('click', function(e) {
+    if (e.target.id !== 'wc-speaker' && !e.target.closest('.word-speaker')) {
+      playCurrentWord();
+    }
+  });
+}
 
 function playCurrentWord() {
   var word = document.getElementById('wc-word').textContent;
